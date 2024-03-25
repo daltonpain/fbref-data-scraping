@@ -1,2 +1,4 @@
 .venv
 MYENV
+.env
+env
