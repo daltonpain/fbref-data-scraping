@@ -6,6 +6,7 @@ __all__ = [
     "tidy_columns",
 ]
 
+# ----------------------------------- Imports -----------------------------------
 import requests
 import warnings
 import pandas as pd
@@ -15,6 +16,9 @@ warnings.filterwarnings(
     "ignore", message="Passing literal html to 'read_html' is deprecated"
 )
 pd.options.mode.chained_assignment = None  # default='warn'
+
+# ----------------------------------- Constants -----------------------------------
+
 
 RENAME_COLUMNS = {
     "shooting": "SHOOT",
@@ -54,12 +58,18 @@ CATEGORIES = [
     "misc",
 ]
 
+# ----------------------------------- Functions -----------------------------------
 
 def scrape_and_process(url, cols, season):
+    """Scrape and process the data from the website."""
+    
+    # scrape (grab data from the website)
     response = requests.get(url)
     soup = BeautifulSoup(response.content, "html.parser")
     table = soup.find("table")
     table_data = pd.read_html(str(table))[0]
+
+    # process (format the data a bit)
     table_data.columns = table_data.columns.droplevel([0])
     selected_data = table_data[cols]
     selected_data.loc[:, "SEASON"] = season
@@ -68,8 +78,12 @@ def scrape_and_process(url, cols, season):
 
 
 def tidy_columns(df, col):
+    """Further formatting that needs to be done after scraping and processing."""
+
     df.reset_index(drop=True, inplace=True)
     df.columns = df.columns.str.upper()
+
+    # append category to the column names
     new_columns = [
         (
             f"{RENAME_COLUMNS[col]}_{column}"
@@ -79,7 +93,8 @@ def tidy_columns(df, col):
         for column in df.columns
     ]
     df.rename(columns=dict(zip(df.columns, new_columns)), inplace=True)
-    # columns with the same name should have unique names
+    
+    # give duplicated columns unique names
     last_col = pd.Series(df.columns)
     for dup in last_col[last_col.duplicated()].unique(): 
         last_col[last_col[last_col == dup].index.values.tolist()] = [dup + str(i) if i != 0 else dup for i in range(sum(last_col == dup))]
